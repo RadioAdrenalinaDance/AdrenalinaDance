@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radio Adrenalina Dance</title>
+<link rel="shortcut icon" href="https://i.postimg.cc/1XXnttZ7/sasasas.png">
+<style>
+   body {
+        font-size: 14px;
+        margin-top: 5px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: blue;
+        background: transparent;
+    }
+
+    .player-container {
+        width: 599px;
+        height: 380px;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        position: relative;
+        border: 5px solid;
+        border-image: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet);
+        border-image-slice: 1;
+        overflow: hidden;
+        background: transparent;
+    }
+
+    .background-blur {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+        filter: blur(20px);
+        z-index: 0;
+        transition: background-image 1.5s ease-in-out;
+    }
+
+    .content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .cover-art {
+        width: 100px;
+        height: 100px;
+        border-radius: 10px;
+        margin-top: 10px;
+        border: 5px solid;
+        border-image: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet);
+        border-image-slice: 1;
+        transition: opacity 1.5s ease-in-out, transform 1.5s ease-in-out;
+        transform-style: preserve-3d;
+    }
+
+    .song-title {
+        font-size: 16px;
+        font-weight: bold;
+        margin-top: 10px;
+        color: white;
+    }
+
+    .radio-name {
+        font-size: 14px;
+        margin-top: 5px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: white;
+    }
+
+    .controls {
+        margin-top: 15px;
+    }
+
+    .play-pause {
+        font-size: 24px;
+        cursor: pointer;
+        background: none;
+        border: none;
+        color: white;
+    }
+
+    .volume-control {
+        margin-top: 10px;
+    }
+
+    input[type="range"] {
+        width: 200px;
+    }
+
+    .volume-level {
+        color: white;
+        margin-left: 10px;
+    }
+</style>
+</head>
+<body>
+    <div class="player-container">
+        <div class="background-blur" id="backgroundBlur"></div>
+        <div class="content" id="content">
+            <img class="cover-art" id="coverArt" src="https://i.postimg.cc/1XXnttZ7/sasasas.png" alt="Cover Art">
+            <div class="song-title" id="songTitle"></div>
+            <div class="radio-name">𝙍𝙖𝙙𝙞𝙤 𝘼𝙙𝙧𝙚𝙣𝙖𝙡𝙞𝙣𝙖 𝘿𝙖𝙣𝙘𝙚</div>
+            <div class="controls">
+                <button class="play-pause" id="playPauseBtn">▶️</button>
+                <input type="range" id="volumeSlider" min="0" max="100" value="70">
+                <span class="volume-level" id="volumeLevel">70%</span>
+            </div>
+        </div>
+    </div>
+
+    <audio id="audioPlayer" autoplay>
+        <source src="https://stream-174.zeno.fm/azkzvbk0zp8uv" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const nowPlayingUrl = "https://zenoplay.zenomedia.com/api/zenofm/nowplaying/azkzvbk0zp8uv";
+        const player = document.getElementById('audioPlayer');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const songTitle = document.getElementById('songTitle');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeLevel = document.getElementById('volumeLevel');
+        const coverArt = document.getElementById('coverArt');
+        const backgroundBlur = document.getElementById('backgroundBlur');
+        const content = document.getElementById('content');
+        const fallbackImage = "https://i.postimg.cc/1XXnttZ7/sasasas.png";
+        let lastArtwork = null;
+
+        async function fetchNowPlaying() {
+            try {
+                const response = await fetch(nowPlayingUrl);
+                if (!response.ok) throw new Error("Errore nel recupero dei dati");
+                const data = await response.json();
+                const title = data.title || "";
+                songTitle.textContent = title;
+
+                if (title) {
+                    const itunesResponse = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title)}&limit=3&media=music`);
+                    const itunesData = await itunesResponse.json();
+                    const artworks = itunesData.results.map(item => item.artworkUrl100.replace("100x100bb", "600x600bb"));
+                    const newArtwork = artworks[Math.floor(Math.random() * artworks.length)] || fallbackImage;
+
+                    if (newArtwork !== lastArtwork) {
+                        // Apply flip effect only when a new cover artwork is found
+                        coverArt.style.transform = "rotateY(180deg)";
+                        coverArt.style.opacity = 0;
+
+                        setTimeout(() => {
+                            coverArt.src = newArtwork;
+                            backgroundBlur.style.backgroundImage = `url(${newArtwork})`;
+                        }, 1500); // Transition time for the flip and fade
+
+                        setTimeout(() => {
+                            coverArt.style.transform = "rotateY(0deg)";
+                            coverArt.style.opacity = 1;
+                        }, 3000); // Reset the flip after 3 seconds
+
+                        lastArtwork = newArtwork; // Update lastArtwork with the new one
+                    } else {
+                        // No flip effect if the artwork is the same as the previous one
+                        coverArt.src = newArtwork;
+                        backgroundBlur.style.backgroundImage = `url(${newArtwork})`;
+                    }
+                } else {
+                    coverArt.src = fallbackImage;
+                    backgroundBlur.style.backgroundImage = `url(${fallbackImage})`;
+                }
+            } catch (error) {
+                console.error("Errore nel recupero della traccia:", error);
+                songTitle.textContent = "Errore nel caricamento";
+                coverArt.src = fallbackImage;
+                backgroundBlur.style.backgroundImage = `url(${fallbackImage})`;
+            }
+        }
+
+        playPauseBtn.addEventListener('click', () => {
+            if (player.paused) {
+                player.play();
+                playPauseBtn.textContent = "⏸️";
+            } else {
+                player.pause();
+                playPauseBtn.textContent = "▶️";
+            }
+        });
+
+        volumeSlider.addEventListener('input', (e) => {
+            player.volume = e.target.value / 100;
+            volumeLevel.textContent = e.target.value + "%";
+        });
+
+        setInterval(fetchNowPlaying, 20000);
+        window.onload = fetchNowPlaying;
+    </script>
+</body>
+</html>
